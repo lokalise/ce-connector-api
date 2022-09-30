@@ -1,0 +1,516 @@
+openapi: 3.0.3
+info:
+  version: 2.1.2
+  title: Connector API
+  description: Connector API requirements
+servers:
+  - url: http://localhost:3000/v{version}
+    variables:
+      version:
+        default: '2'
+        description: Major version number of the api version
+paths:
+  /:
+    get:
+      security: []
+      description: Healthcheck endpoint
+      responses:
+        200:
+          description: Service is up
+  /health:
+    get:
+      security: []
+      description: Healthcheck endpoint
+      responses:
+        200:
+          description: Service is up
+  /auth:
+    get:
+      security:
+        - Config: []
+      description: Obtain authentication type definition
+      responses:
+        200:
+          description: Authentication type definition
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - type
+                properties:
+                  type:
+                    type: string
+                    enum: [apiToken, OAuth]
+      tags:
+        - Auth
+    post:
+      security:
+        - Config: []
+      description: Initiate authentication process
+      requestBody:
+        description: Payload depends on the authentication flow used by connector.
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - description: Api key flow contain no additional payload
+                  type: object
+                  additionalProperties:
+                    type: string
+                - description:
+                    For Oauth flow, the redirect url will be provided to handle
+                    3rd party auth result.
+                  type: object
+                  additionalProperties:
+                    type: string
+                  required:
+                    - redirectUrl
+                  properties:
+                    redirectUrl:
+                      type: string
+                      description: OAuth redirect url
+                    state:
+                      type: string
+                      description: OAuth state parameter to be used for authorization url generation
+      responses:
+        200:
+          description: Authorization process initiated successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - description: For apiToken flow, the authorization data object
+                    type: object
+                    additionalProperties:
+                      type: string
+                    example:
+                      apiKey: 3rd party api key to use
+                  - type: object
+                    description: For OAuth flow, the authorization url user should be redirected to
+                    properties:
+                      url:
+                        type: string
+                        description: Authorization url
+        403:
+          description: Authorization process initialization failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      tags:
+        - Auth
+  /auth/response:
+    post:
+      security:
+        - Config: []
+      description: Recognize 3rd party authorization response
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+                - body
+                - redirectUrl
+              properties:
+                query:
+                  description: 3rd party authorization response query payload
+                  type: object
+                body:
+                  type: object
+                  description: 3rd party authorization response body payload
+                redirectUrl:
+                  type: string
+                  description: OAuth redirect url
+      responses:
+        200:
+          description: User authorized successfully
+          content:
+            application/json:
+              schema:
+                description: The authorization data object
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  access_token: "3rd OAuth access token"
+                  refresh_token: "3rd OAuth refresh token"
+        403:
+          description: Authorization failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      tags:
+        - Auth
+  /auth/refresh:
+    post:
+      description: Renew the token used.
+      responses:
+        200:
+          description: Returns refreshed access credentials
+          content:
+            application/json:
+              schema:
+                description: The authorization data object
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  access_token: "3rd OAuth access token"
+                  refresh_token: "3rd OAuth refresh token"
+        403:
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      tags:
+        - Auth
+  /env:
+    get:
+      tags:
+        - Environment
+      description:
+        Get all locales, default locale and hashmap with fields and labels for
+        cache items
+      responses:
+        200:
+          description: List of locale codes and names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  defaultLocale:
+                    type: string
+                    example: en_AU
+                    description: Locale of original content in 3rd party. Empty string, if cannot be determined.
+                  locales:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Locale'
+                    example:
+                      - name: English Australia
+                        code: en_AU
+                      - name: German
+                        code: ge
+                  cacheItemStructure:
+                    $ref: '#/components/schemas/CacheItemStructure'
+        403:
+          description: Not authorized error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /cache:
+    get:
+      tags:
+        - Cache
+      description: Get translatable item IDs
+      responses:
+        200:
+          description: List of translatable item IDs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UniqueItemIdentifier'
+        403:
+          description: Not authorized error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /cache/items:
+    post:
+      tags:
+        - Cache
+      description: Retrieve cache items based on ids
+      requestBody:
+        description: List of cache item identifiers
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UniqueItemIdentifier'
+      responses:
+        200:
+          description: List of cache items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CacheItem'
+  /publish:
+    post:
+      tags:
+        - Translation process
+      description: Update content in Content Management System
+      requestBody:
+        description: List of content items with translations
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                defaultLocale:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ContentItem'
+                  example:
+                    - uniqueId: 'post:1:title'
+                      groupId: 'post:1'
+                      metadata:
+                        contentType: post
+                        field: title
+                      translations:
+                        en_US: Hello World!
+                        ge: Hallo Welt!
+                    - uniqueId: 'post:1:body'
+                      groupId: 'post:1'
+                      metadata:
+                        contentType: post
+                        field: body
+                      translations:
+                        en_US: >-
+                          Lorem Ipsum is simply dummy text of the printing and
+                          typesetting industry.
+                        ge: >-
+                          Lorem Ipsum ist einfach Blindtext der Druck- und
+                          Satzindustrie.
+      responses:
+        200:
+          description: Content successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: Content successfully updated
+                  updateItems:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UniqueItemIdentifier'
+        400:
+          description: List of validation errors for each content item grouped by language
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 400
+                  validationErrors:
+                    type: object
+                    items:
+                      type: string
+                    example:
+                      'post:1:title':
+                        en_US:
+                          - Malformed content
+                          - Content is too short
+                        ge:
+                          - Content is too long
+                      'post:1:body':
+                        ge:
+                          - Content is too long
+        403:
+          description: Not authorised
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /translate:
+    post:
+      tags:
+        - Translation process
+      description: Get translatable content from Content Management System
+      requestBody:
+        description: List of cache item identifiers and required locales
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                defaultLocale:
+                  type: string
+                locales:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - en
+                    - en_US
+                    - ru
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UniqueItemIdentifier'
+      responses:
+        200:
+          description: List of translatable items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentItem'
+                  updateItems:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UniqueItemIdentifier'
+        403:
+          description: Not authorized error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+components:
+  schemas:
+    UniqueItemIdentifier:
+      type: object
+      required:
+        - groupId
+        - uniqueId
+        - metadata
+      properties:
+        uniqueId:
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: 'post:1:title'
+        groupId:
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: 'post:1'
+        metadata:
+          $ref: '#/components/schemas/UniqueIdMetadata'
+    UniqueIdMetadata:
+      type: object
+      description: >-
+        This object with flexible structure will be used to help mapping content
+        items to items in Content Management system
+      example:
+        contentType: post
+        field: title
+    Locale:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          example: English Australia
+        code:
+          type: string
+          example: en_AU
+    CacheItem:
+      allOf:
+        - $ref: '#/components/schemas/UniqueItemIdentifier'
+        - type: object
+          required:
+            - fields
+            - title
+            - groupTitle
+          properties:
+            fields:
+              type: object
+              additionalProperties:
+                description: Values to display in the cache table
+                type: string
+              example:
+                contentType: Post
+                createdAt: "2020-01-01T00:00:00.000Z"
+                updatedAt: "2020-01-01T00:00:00.000Z"
+            title:
+              type: string
+              example: Title
+              description: 3rd party content entity field description
+            groupTitle:
+              type: string
+              example: This is a content about something
+              description: Meaningful title for the 3rd party content entity
+    CacheItemStructure:
+      description: Structure of cache item. Hashmap of field names and matching labels
+      type: object
+      example:
+        title: Title
+        contentType: Content type
+        createdAt: Created at
+        updatedAt: Updated at
+    ContentItem:
+      allOf:
+        - $ref: '#/components/schemas/UniqueItemIdentifier'
+      type: object
+      required:
+        - translations
+      properties:
+        translations:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            en_US: Hello World!
+            ge: Hallo Welt!
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        errorCode:
+          type: integer
+          format: int32
+          example: 403
+        message:
+          type: string
+          example: Not authorised
+        details:
+          type: object
+  securitySchemes:
+    Auth:
+      type: apiKey
+      description: Base64 encoded Auth object
+      in: header
+      name: CE-Auth
+    Config:
+      type: apiKey
+      description: Base64 encoded Config object
+      in: header
+      name: CE-Config
+security:
+  - Auth: []
+  - Config: []
