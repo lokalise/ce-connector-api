@@ -35,13 +35,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - type
-                properties:
-                  type:
-                    type: string
-                    enum: [apiToken, OAuth]
+                $ref: '#/components/schemas/AuthGetResponse'
       tags:
         - Auth
     post:
@@ -53,45 +47,14 @@ paths:
         content:
           application/json:
             schema:
-              oneOf:
-                - description: Api key flow contain no additional payload
-                  type: object
-                  additionalProperties:
-                    type: string
-                - description:
-                    For Oauth flow, the redirect url will be provided to handle
-                    3rd party auth result.
-                  type: object
-                  additionalProperties:
-                    type: string
-                  required:
-                    - redirectUrl
-                  properties:
-                    redirectUrl:
-                      type: string
-                      description: OAuth redirect url
-                    state:
-                      type: string
-                      description: OAuth state parameter to be used for authorization url generation
+              $ref: '#/components/schemas/AuthPostRequest'
       responses:
         200:
           description: Authorization process initiated successfully
           content:
             application/json:
               schema:
-                oneOf:
-                  - description: For apiToken flow, the authorization data object
-                    type: object
-                    additionalProperties:
-                      type: string
-                    example:
-                      apiKey: 3rd party api key to use
-                  - type: object
-                    description: For OAuth flow, the authorization url user should be redirected to
-                    properties:
-                      url:
-                        type: string
-                        description: Authorization url
+                $ref: '#/components/schemas/AuthPostResponse'
         403:
           description: Authorization process initialization failed
           content:
@@ -109,34 +72,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - query
-                - body
-                - redirectUrl
-              properties:
-                query:
-                  description: 3rd party authorization response query payload
-                  type: object
-                body:
-                  type: object
-                  description: 3rd party authorization response body payload
-                redirectUrl:
-                  type: string
-                  description: OAuth redirect url
+              $ref: '#/components/schemas/AuthResponseRequest'
       responses:
         200:
           description: User authorized successfully
           content:
             application/json:
               schema:
-                description: The authorization data object
-                type: object
-                additionalProperties:
-                  type: string
-                example:
-                  access_token: "3rd OAuth access token"
-                  refresh_token: "3rd OAuth refresh token"
+                $ref: '#/components/schemas/AuthResponseResponse'
         403:
           description: Authorization failed
           content:
@@ -154,13 +97,7 @@ paths:
           content:
             application/json:
               schema:
-                description: The authorization data object
-                type: object
-                additionalProperties:
-                  type: string
-                example:
-                  access_token: "3rd OAuth access token"
-                  refresh_token: "3rd OAuth refresh token"
+                $ref: '#/components/schemas/AuthRefreshResponse'
         403:
           description: Invalid refresh token
           content:
@@ -182,23 +119,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  defaultLocale:
-                    type: string
-                    example: en_AU
-                    description: Locale of original content in 3rd party. Empty string, if cannot be determined.
-                  locales:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Locale'
-                    example:
-                      - name: English Australia
-                        code: en_AU
-                      - name: German
-                        code: ge
-                  cacheItemStructure:
-                    $ref: '#/components/schemas/CacheItemStructure'
+                $ref: '#/components/schemas/EnvResponse'
         403:
           description: Not authorized error
           content:
@@ -216,12 +137,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UniqueItemIdentifier'
+                $ref: '#/components/schemas/CacheResponse'
         403:
           description: Not authorized error
           content:
@@ -239,24 +155,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                items:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/UniqueItemIdentifier'
+              $ref: '#/components/schemas/CacheItemsRequest'
       responses:
         200:
           description: List of cache items
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/CacheItem'
+                $ref: '#/components/schemas/CacheItemsResponse'
   /publish:
     post:
       tags:
@@ -268,79 +174,20 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                defaultLocale:
-                  type: string
-                items:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/ContentItem'
-                  example:
-                    - uniqueId: 'post:1:title'
-                      groupId: 'post:1'
-                      metadata:
-                        contentType: post
-                        field: title
-                      translations:
-                        en_US: Hello World!
-                        ge: Hallo Welt!
-                    - uniqueId: 'post:1:body'
-                      groupId: 'post:1'
-                      metadata:
-                        contentType: post
-                        field: body
-                      translations:
-                        en_US: >-
-                          Lorem Ipsum is simply dummy text of the printing and
-                          typesetting industry.
-                        ge: >-
-                          Lorem Ipsum ist einfach Blindtext der Druck- und
-                          Satzindustrie.
+              $ref: '#/components/schemas/PublishRequest'
       responses:
         200:
           description: Content successfully updated
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 200
-                  message:
-                    type: string
-                    example: Content successfully updated
-                  updateItems:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UniqueItemIdentifier'
+                $ref: '#/components/schemas/PublishResponse'
         400:
           description: List of validation errors for each content item grouped by language
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
-                  validationErrors:
-                    type: object
-                    items:
-                      type: string
-                    example:
-                      'post:1:title':
-                        en_US:
-                          - Malformed content
-                          - Content is too short
-                        ge:
-                          - Content is too long
-                      'post:1:body':
-                        ge:
-                          - Content is too long
+                $ref: '#/components/schemas/PublishErrorResponse'
         403:
           description: Not authorised
           content:
@@ -358,38 +205,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                defaultLocale:
-                  type: string
-                locales:
-                  type: array
-                  items:
-                    type: string
-                  example:
-                    - en
-                    - en_US
-                    - ru
-                items:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/UniqueItemIdentifier'
+              $ref: '#/components/schemas/TranslateRequest'
       responses:
         200:
           description: List of translatable items
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ContentItem'
-                  updateItems:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UniqueItemIdentifier'
+                $ref: '#/components/schemas/TranslateResponse'
         403:
           description: Not authorized error
           content:
@@ -398,8 +221,227 @@ paths:
                 $ref: '#/components/schemas/ApiError'
 components:
   schemas:
+    AuthPostRequest:
+      oneOf:
+        - description: Api key flow contain no additional payload
+          type: object
+          additionalProperties:
+            type: string
+        - description:
+            For Oauth flow, the redirect url will be provided to handle
+            3rd party auth result.
+          type: object
+          additionalProperties:
+            type: string
+          required:
+            - redirectUrl
+          properties:
+            redirectUrl:
+              type: string
+              description: OAuth redirect url
+            state:
+              type: string
+              description: OAuth state parameter to be used for authorization url generation
+    AuthPostResponse:
+      oneOf:
+        - description: For apiToken flow, the authorization data object
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            apiKey: 3rd party api key to use
+        - type: object
+          description: For OAuth flow, the authorization url user should be redirected to
+          properties:
+            url:
+              type: string
+              description: Authorization url
+    AuthGetResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [apiToken, OAuth]
+    AuthResponseRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - query
+        - body
+        - redirectUrl
+      properties:
+        query:
+          description: 3rd party authorization response query payload
+          type: object
+        body:
+          type: object
+          description: 3rd party authorization response body payload
+        redirectUrl:
+          type: string
+          description: OAuth redirect url
+    AuthResponseResponse:
+      description: The authorization data object
+      type: object
+      additionalProperties:
+        type: string
+      example:
+        access_token: "3rd OAuth access token"
+        refresh_token: "3rd OAuth refresh token"
+    AuthRefreshResponse:
+      description: The authorization data object
+      type: object
+      additionalProperties:
+        type: string
+      example:
+        access_token: "3rd OAuth access token"
+        refresh_token: "3rd OAuth refresh token"
+    EnvResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        defaultLocale:
+          type: string
+          example: en_AU
+          description: Locale of original content in 3rd party. Empty string, if cannot be determined.
+        locales:
+          type: array
+          items:
+            $ref: '#/components/schemas/Locale'
+          example:
+            - name: English Australia
+              code: en_AU
+            - name: German
+              code: ge
+        cacheItemStructure:
+          $ref: '#/components/schemas/CacheItemStructure'
+    CacheResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueItemIdentifier'
+    CacheItemsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CacheItem'
+    CacheItemsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueItemIdentifier'
+    PublishRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        defaultLocale:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentItem'
+          example:
+            - uniqueId: 'post:1:title'
+              groupId: 'post:1'
+              metadata:
+                contentType: post
+                field: title
+              translations:
+                en_US: Hello World!
+                ge: Hallo Welt!
+            - uniqueId: 'post:1:body'
+              groupId: 'post:1'
+              metadata:
+                contentType: post
+                field: body
+              translations:
+                en_US: >-
+                  Lorem Ipsum is simply dummy text of the printing and
+                  typesetting industry.
+                ge: >-
+                  Lorem Ipsum ist einfach Blindtext der Druck- und
+                  Satzindustrie.
+    PublishResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        message:
+          type: string
+          example: Content successfully updated
+        updateItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueItemIdentifier'
+    PublishErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 400
+        validationErrors:
+          type: object
+          items:
+            type: string
+          example:
+            'post:1:title':
+              en_US:
+                - Malformed content
+                - Content is too short
+              ge:
+                - Content is too long
+            'post:1:body':
+              ge:
+                - Content is too long
+    TranslateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        defaultLocale:
+          type: string
+        locales:
+          type: array
+          items:
+            type: string
+          example:
+            - en
+            - en_US
+            - ru
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueItemIdentifier'
+    TranslateResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentItem'
+        updateItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueItemIdentifier'
     UniqueItemIdentifier:
       type: object
+      additionalProperties: false
       required:
         - groupId
         - uniqueId
@@ -419,6 +461,7 @@ components:
           $ref: '#/components/schemas/UniqueIdMetadata'
     UniqueIdMetadata:
       type: object
+      additionalProperties: false
       description: >-
         This object with flexible structure will be used to help mapping content
         items to items in Content Management system
@@ -427,6 +470,7 @@ components:
         field: title
     Locale:
       type: object
+      additionalProperties: false
       required:
         - name
         - code
@@ -441,6 +485,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/UniqueItemIdentifier'
         - type: object
+          additionalProperties: false
           required:
             - fields
             - title
@@ -466,6 +511,7 @@ components:
     CacheItemStructure:
       description: Structure of cache item. Hashmap of field names and matching labels
       type: object
+      additionalProperties: false
       example:
         title: Title
         contentType: Content type
@@ -475,6 +521,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/UniqueItemIdentifier'
       type: object
+      additionalProperties: false
       required:
         - translations
       properties:
@@ -487,6 +534,7 @@ components:
             ge: Hallo Welt!
     ApiError:
       type: object
+      additionalProperties: false
       required:
         - code
         - message
