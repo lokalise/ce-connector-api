@@ -325,15 +325,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UniqueItemIdentifier'
-    CacheItemsRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CacheItem'
-    CacheItemsResponse:
+    CacheItemsResquest:
       type: object
       additionalProperties: false
       properties:
@@ -341,6 +333,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UniqueItemIdentifier'
+    CacheItemsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CacheItem'
     PublishRequest:
       type: object
       additionalProperties: false
